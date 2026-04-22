@@ -117,7 +117,7 @@ class GJRequest {
 	 * @param oldRes The `Response` to be modified.
 	 * @return A new `Response` with every Image URL modified for a better resolution when requested.
 	 */
-	function formatImages(res:Response):Response {
+	static function formatImages(res:Response):Response {
 		if (res.users != null)
 			res.users.iter(u -> u.avatar_url = '${u.avatar_url.substring(0, 32)}1000${u.avatar_url.substr(34)}'.replace(".jpg", ".png")
 				.replace(".webp", ".png"));
@@ -150,7 +150,7 @@ class GJRequest {
 	 * @param signed Whether to sign this conversion or not.
 	 * @return The new URL piece.
 	 */
-	function parseType(request:RequestType, signed:Bool = false):String {
+	static function parseType(request:RequestType, signed:Bool = false):String {
 		var command:String = "";
 		var action:String = "";
 		var params:Array<{name:String, value:String}> = [];
@@ -160,8 +160,7 @@ class GJRequest {
 				command = "batch";
 				params.push({name: "parallel", value: '$parallel'});
 				params.push({name: "break_on_error", value: '$breakOnError'});
-				for (req in requests)
-					params.push({name: "requests[]", value: parseType(req, true)});
+				requests.iter(req -> params.push({name: "requests[]", value: parseType(req, true)}));
 			case DATA_FETCH(key, fromUser):
 				command = "data-store";
 				params.push({name: "key", value: key.urlEncode()});
@@ -310,13 +309,13 @@ class GJRequest {
 				params.push({name: "user_token", value: GameJolt.userToken});
 			case TROPHIES_ADD(trophy_id):
 				command = "trophies";
-				action = "add";
+				action = "add-achieved";
 				params.push({name: "trophy_id", value: '$trophy_id'});
 				params.push({name: "username", value: GameJolt.userName});
 				params.push({name: "user_token", value: GameJolt.userToken});
 			case TROPHIES_REMOVE(trophy_id):
 				command = "trophies";
-				action = "remove";
+				action = "remove-achieved";
 				params.push({name: "trophy_id", value: '$trophy_id'});
 				params.push({name: "username", value: GameJolt.userName});
 				params.push({name: "user_token", value: GameJolt.userToken});
@@ -333,7 +332,7 @@ class GJRequest {
 	 * @param daUrl The old URL piece.
 	 * @return The new URL piece.
 	 */
-	function sign(daUrl:String):String {
+	static function sign(daUrl:String):String {
 		var urlToEncode:String = daUrl + GameJolt.gameKey;
 		return '$daUrl&signature=${GameJolt.usingMd5 ? haxe.crypto.Md5.encode(urlToEncode) : haxe.crypto.Sha1.encode(urlToEncode)}';
 	}

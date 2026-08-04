@@ -6,6 +6,10 @@ import haxe.Http;
 import haxe.Json.parse;
 import lime.app.Event;
 import openfl.events.*;
+#if android
+import gamejolt.android.GJHttpAndroid;
+import sys.thread.Thread;
+#end
 
 using Lambda;
 using StringTools;
@@ -71,6 +75,39 @@ class GJRequest {
 			return;
 		executing = true;
 
+		#if android
+		if (async) {
+			// On Android the request runs through Java's HttpURLConnection on a
+			// background thread; the result is delivered back on the main thread.
+			GJHttpAndroid.fetchAsync(url, function(data) {
+				handleData(data);
+			}, function(error) {
+				lastResponse = {success: false, message: 'Request Error: ${error}'};
+				onError.dispatch(lastResponse.message);
+				executing = false;
+			});
+		} else {
+			// Blocking requests must not touch the network from the Android UI
+			// thread, so the actual fetch happens on a worker thread while the
+			// caller blocks waiting for its result, preserving sync semantics.
+			final caller:Thread = Thread.current();
+			Thread.create(function() {
+				try {
+					caller.sendMessage(GJHttpAndroid.fetch(url));
+				} catch (e:Dynamic) {
+					caller.sendMessage(null);
+				}
+			});
+			var data:Null<String> = cast Thread.readMessage(true);
+			if (data != null)
+				handleData(data);
+			else {
+				lastResponse = {success: false, message: "Request Error: the request failed or returned nothing"};
+				onError.dispatch(lastResponse.message);
+				executing = false;
+			}
+		}
+		#else
 		if (async) {
 			var loader = new openfl.net.URLLoader();
 			loader.addEventListener(openfl.events.Event.COMPLETE, function(complete) {
@@ -110,6 +147,25 @@ class GJRequest {
 			};
 			loader.request(false);
 		}
+		#end
+	}
+
+	/**
+	 * Parses a raw response body and dispatches the corresponding event.
+	 * @param data The raw response body returned by the request.
+	 */
+	function handleData(data:String):Void {
+		try {
+			lastResponse = formatImages(cast parse(data).response);
+			if (lastResponse.message != null)
+				onError.dispatch('Response Error: ${lastResponse.message}');
+			else
+				onComplete.dispatch(lastResponse);
+		} catch (e:Dynamic) {
+			lastResponse = {success: false, message: 'Parse Error: ${Std.string(e)}'};
+			onError.dispatch(lastResponse.message);
+		}
+		executing = false;
 	}
 
 	/**

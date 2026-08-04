@@ -9,13 +9,14 @@
         "fnf"
     ],
     "description": "An useful tool to work with GameJolt for FNF Mods and Haxe Games as well!",
-    "version": "6.2.5",
+    "version": "6.3.0",
     "classPath": "src/",
-    "releasenote": "Fixed Most Recent Commands!",
+    "releasenote": "Android support: requests now go through Java's HttpURLConnection via JNI",
     "contributors": [
         "GamerPablito"
     ],
     "dependencies": {
+        "hxcpp": "",
         "lime": "",
         "openfl": ""
     },

@@ -16,7 +16,6 @@
         "GamerPablito"
     ],
     "dependencies": {
-        "hxcpp": "",
         "lime": "",
         "openfl": ""
     },
